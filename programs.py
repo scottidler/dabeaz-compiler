@@ -19,6 +19,9 @@
 #
 
 from wabbit.model import *
+from wabbit.model import WabbitRenderer
+
+renderer = WabbitRenderer()
 
 # ----------------------------------------------------------------------
 # Simple Expression
@@ -49,7 +52,7 @@ model1 = Prog([
 print("source:")
 print(source1)
 print("render:")
-print(model1.to_code())
+print(model1.accept(renderer))
 print()
 
 # ----------------------------------------------------------------------
@@ -75,7 +78,7 @@ model2 = Prog([
 print("source:")
 print(source2)
 print("render:")
-print(model2.to_code())
+print(model2.accept(renderer))
 print()
 
 # ----------------------------------------------------------------------
@@ -100,7 +103,7 @@ model3 = Prog([
 print("source:")
 print(source3)
 print("render:")
-print(model3.to_code())
+print(model3.accept(renderer))
 print()
 
 # ----------------------------------------------------------------------
@@ -132,7 +135,7 @@ model4 = Prog([
 print("source:")
 print(source4)
 print("render:")
-print(model4.to_code())
+print(model4.accept(renderer))
 print()
 # ----------------------------------------------------------------------
 # Program 5: Functions (simple)
@@ -158,7 +161,7 @@ model5 = Prog([
 print("source:")
 print(source5)
 print("render:")
-print(model5.to_code())
+print(model5.accept(renderer))
 print()
 # ----------------------------------------------------------------------
 # Program 6: Functions (complex)

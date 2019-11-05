@@ -2,6 +2,7 @@
 
 from typing import Any
 from dataclasses import dataclass
+from multimethod import multimeta
 
 NL = '\n'
 
@@ -11,8 +12,11 @@ def printf(expr):
 @dataclass
 class Node:
     def to_code(self):
-        msg = f"to_code must be implemented for {self.__class__.__name__}"
+        msg = f'to_code must be implemented for {self.__class__.__name__}'
         raise NotImplementedError(msg)
+
+    def accept(self, visitor):
+        return visitor.visit(self)
 
 @dataclass
 class Expression(Node):
@@ -26,25 +30,17 @@ class Statement(Node):
 class Block(Node):
     stmts: [Statement]
 
-    def to_code(self, prefix='{\n', suffix='\n}\n'):
-        return f"{prefix}{NL.join([stmt.to_code() for stmt in self.stmts])}{suffix}"
-
 @dataclass
 class Prog(Block):
-    def to_code(self):
-        return super(Prog, self).to_code(prefix='', suffix='')
+    pass
 
 @dataclass
 class Type(Node):
-    name: str
-
-    def to_code(self):
-        return self.name
+    value: str
 
 @dataclass
 class Literal(Expression):
-    def to_code(self):
-        return str(self.value)
+    pass
 
 @dataclass
 class Integer(Literal):
@@ -64,18 +60,12 @@ class Char(Literal):
 
 @dataclass
 class Undef(Expression):
-    def to_code(self):
-        return ""
-
     def __bool__(self):
         return False
 
 @dataclass
 class Name(Expression):
-    name: str
-
-    def to_code(self):
-        return self.name
+    value: str
 
 @dataclass
 class Definition(Statement):
@@ -84,57 +74,34 @@ class Definition(Statement):
     type: Type = Undef()
     mutable: bool = True
 
-    def to_code(self):
-        prefix = "var" if self.mutable else "const"
-        suffix = f" = {self.value.to_code()}" if self.value else ""
-        return f"{prefix} {self.name.to_code()} {self.type.to_code()}{suffix};"
-
 @dataclass
 class BinOp(Expression):
     operator: Name
     left: Expression
     right: Expression
 
-    def to_code(self):
-        return f"({self.left.to_code()} {self.operator.to_code()} {self.right.to_code()})"
-
 @dataclass
 class UnOp(Expression):
     operator: Name
     expr: Expression
 
-    def to_code(self):
-        return f"{self.operator.to_code()}{self.expr.to_code()}"
-
 @dataclass
 class Location(Node):
-    index: int
-
-    def to_code(self):
-        return f"{self.index}"
+    value: int
 
 @dataclass
 class Assignment(Statement):
     loc: Location
     expr: Expression
 
-    def to_code(self):
-        return f"{self.loc.to_code()} = {self.expr.to_code()};"
-
 @dataclass
 class Cast(Expression):
     type: Type
     expr: Expression
 
-    def to_code(self):
-        return f"{self.type.to_code()}(self.expr.to_code())"
-
 @dataclass
 class Print(Statement):
     expr: Expression
-
-    def to_code(self):
-        return f"print {self.expr.to_code()};"
 
 @dataclass
 class If(Statement):
@@ -142,43 +109,28 @@ class If(Statement):
     consequence: Block
     alternative: Block
 
-    def to_code(self):
-        return f"if {self.test.to_code()} {self.consequence.to_code()}else {self.alternative.to_code()}"
-
 @dataclass
 class While(Statement):
     test: Expression
     block: Block
 
-    def to_code(self):
-        return f"while {self.test.to_code()} {self.block.to_code()}"
-
 @dataclass
 class Break(Statement):
-    def to_code(self):
-        return "break;"
+    pass
 
 @dataclass
 class Continue(Statement):
-    def to_code(self):
-        return "continue;"
+    pass
 
 @dataclass
 class Return(Statement):
     expr: Expression
-
-    def to_code(self):
-        return f"return {self.expr.to_code()};"
 
 @dataclass
 class Parameter(Node):
     name: Name
     type: Type
     value: Expression = Undef()
-
-    def to_code(self):
-        suffix = f" = {self.value.to_code()}" if self.value else ""
-        return f"{self.name.to_code()} {self.type.to_code()}{suffix}"
 
 @dataclass
 class Func(Statement):
@@ -187,24 +139,94 @@ class Func(Statement):
     type: Type
     block: Block
 
-    def to_code(self):
-        params = ', '.join([param.to_code() for param in self.params])
-        return f"func {self.name.to_code()}({params}) {self.type.to_code()} {self.block.to_code()}"
-
 @dataclass
 class Import(Statement):
     name: Name
     params: [Parameter]
     type: Type
 
-    def to_code(self):
-        return f"import {self.name.to_code()} ({','.join([param.to_code() for param in self.params])});"
-
 @dataclass
 class Call(Expression):
     name: Name
     params: [Expression]
 
-    def to_code(self):
-        args = ', '.join([param.to_code() for param in self.params])
-        return f"{self.name.to_code()}({args})"
+class Visitor(metaclass=multimeta):
+    pass
+
+class WabbitRenderer(Visitor):
+
+    def visit(self, undef: Undef):
+        return ''
+
+    def visit(self, type: Type):
+        return type.value
+
+    def visit(self, name: Name):
+        return name.value
+
+    def visit(self, literal: Literal):
+        return str(literal.value)
+
+    def visit(self, location: Location):
+        return location.value
+
+    def visit(self, unop: UnOp):
+        return f'{self.visit(unop.operator)}{self.visit(unop.expr)}'
+
+    def visit(self, binop: BinOp):
+        return f'({self.visit(binop.left)} {self.visit(binop.operator)} {self.visit(binop.right)})'
+
+    def visit(self, definition: Definition):
+        prefix = 'var' if definition.mutable else 'const'
+        suffix = f' = {self.visit(definition.value)}' if definition.value else ''
+        return f'{prefix} {self.visit(definition.name)} {self.visit(definition.type)}{suffix};'
+
+    def visit(self, assignment: Assignment):
+        return f'{self.visit(assignment.loc)} = {self.visit(assignment.expr)};'
+
+    def visit(self, cast: Cast):
+        return f'{self.visit(cast.type)}({self.visit(cast.expr)})'
+
+    def _render_block(self, stmts, prefix='{\n', suffix='\n}\n'):
+        return f'{prefix}{NL.join([self.visit(stmt) for stmt in stmts])}{suffix}'
+
+    def visit(self, block):
+        return self._render_block(block.stmts)
+
+    def visit(self, prog):
+        return self._render_block(prog.stmts, prefix='', suffix='')
+
+    def visit(self, print: Print):
+        return f'print {self.visit(print.expr)};'
+
+    def visit(self, if_: If):
+        return f'if {self.visit(if_.test)} {self.visit(if_.consequence)}else {self.visit(if_.alternative)}'
+
+    def visit(self, while_: While):
+        return f'while {self.visit(while_.test)} {self.visit(while_.block)}'
+
+    def visit(self, break_: Break):
+        return 'break;'
+
+    def visit(self, continue_: Continue):
+        return 'continue;'
+
+    def visit(self, return_: Return):
+        return f'return {self.visit(return_.expr)};'
+
+    def visit(self, param: Parameter):
+        suffix = f' = {self.visit(param.value)}' if param.value else ''
+        return f'{self.visit(param.name)} {self.visit(param.type)}{suffix}'
+
+    def visit(self, func: Func):
+        params = ', '.join([self.visit(param) for param in func.params])
+        return f'func {self.visit(func.name)}({params}) {self.visit(func.type)} {self.visit(func.block)}'
+
+    def visit(self, import_: Import):
+        params = ', '.join([self.visit(param) for param in func.params])
+        return f'import {self.visit(import_.name)} ({params});'
+
+    def visit(self, call: Call):
+        args = ', '.join([self.visit(param) for param in call.params])
+        return f"{self.visit(call.name)}({args})"
+
