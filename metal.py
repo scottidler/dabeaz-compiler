@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
 # metal.py
-# 
+#
 # One of the main roles of a compiler is taking high-level programs
 # such as what you might write in C or Python and reducing them to
 # instructions that can execute on actual hardware.
@@ -39,7 +41,29 @@
 # as 'R0', 'R1', etc.  All memory instructions take their address from
 # register plus an offset that's encoded as part of the instruction.
 
-MASK = 0xffffffff
+MASK    = 0xffffffff
+PRINT   = 'PRINT'
+ADD     = 'ADD'
+SUB     = 'SUB'
+AND     = 'AND'
+OR      = 'OR'
+XOR     = 'XOR'
+SHL     = 'SHL'
+SHR     = 'SHR'
+CONST   = 'CONST'
+LOAD    = 'LOAD'
+STORE   = 'STORE'
+JMP     = 'JMP'
+BZ      = 'BZ'
+HALT    = 'HALT'
+R0      = 'R0'
+R1      = 'R1'
+R2      = 'R2'
+R3      = 'R3'
+R4      = 'R4'
+R5      = 'R5'
+R6      = 'R6'
+R7      = 'R7'
 
 class Metal:
     def run(self, memory):
@@ -98,10 +122,13 @@ class Metal:
         if not self.registers[rt]:
             self.pc += offset
 
+    def PRINT(self, rx):
+        print(f'{rx} = {self.registers[rx]}')
+
     def HALT(self):
         self.running = False
 
-if __name__ == '__main__':        
+if __name__ == '__main__':
     machine = Metal()
 
     # ----------------------------------------------------------------------
@@ -120,6 +147,17 @@ if __name__ == '__main__':
               ('HALT',),
               0            # Store the result here (note: R7 points here)
               ]
+
+    prog1 = [
+        (CONST, 2, R1),
+        (CONST, 3, R2),
+        (ADD, R1, R2, R3),
+        (CONST, 4, R4),
+        (SUB, R3, R4, R5),
+        (STORE, R5, R7, 0),
+        (HALT, ),
+        0,
+    ]
 
     machine.run(prog1)
     print('Program 1 Result:', prog1[-1], '(Should be 1)')
@@ -140,6 +178,20 @@ if __name__ == '__main__':
               0           # Store result here
             ]
 
+    prog2 = [
+        (CONST, 3, R1),
+        (CONST, 7, R2),
+        (CONST, 0, R3),
+        (CONST, 1, R4),
+        (ADD, R2, R3, R3),
+        (SUB, R1, R4, R1),
+        (BZ, R1, 1),
+        (JMP, R0, 4),
+        (STORE, R3, R7, 0),
+        (HALT,),
+        0,
+    ]
+
     machine.run(prog2)
     print('Program 2 Result:', prog2[-1], '(Should be 21)')
 
@@ -159,8 +211,22 @@ if __name__ == '__main__':
                  ('HALT',),
                  0       # Result
         ]
+
+        prog = [
+            (CONST, x, R1),
+            (CONST, y, R2),
+            (CONST, 0, R3),
+            (CONST, 1, R4),
+            (ADD, R2, R3, R3),
+            (SUB, R1, R4, R1),
+            (BZ, R1, 1),
+            (JMP, R0, 4),
+            (STORE, R3, R7, 0),
+            (HALT,),
+            0,
+        ]
         machine.run(prog)
-        return prog[-1] 
+        return prog[-1]
 
     print(f'Problem 3: 3 * 9 = {mul(3, 9)}. (Should be 27)')
 
@@ -168,4 +234,5 @@ if __name__ == '__main__':
     # Optional challenge:
     #
     # What is the fastest algorithm for computing mul(x, y)?
+    # Katsuba Algorithm
 
