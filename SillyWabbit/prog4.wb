@@ -1,0 +1,76 @@
+/* prog4.wb - Memory */
+
+/* Wabbit can directly access memory, but the way it works is,
+   for lack of a better word, "unique."   Memory is treated as
+   contiguous block of bytes starting at memory address 0.  To
+   find out how much memory is available, or to grow the available
+   memory, use the ^ operator.  For example:
+*/
+
+var memsize int = ^0;       // Gets the current memory size
+
+/* To increase memory up to a new maximum: */
+
+const required_memory = 65536;
+if memsize < required_memory {
+     memsize = ^(required_memory - memsize);
+}
+
+/* To read/write from memory, you use the backtick (`) operator 
+   with an integer argument.  The integer argument holds the
+   memory address.  The type of data accessed is inferred from
+   surrounding context.  For example: */
+
+var addr = 1234;       
+
+`addr = 42;              // Stores 32-bit integer 42 at addr
+`(addr+4) = 4.2;         // Stores 64-bit float 4.2 at (addr+4)
+
+print(int(`addr));       // Prints the 32-bit integer stored at addr
+print(float(`(addr+4))); // Prints the 64-bit float stored at addr
+
+/* Various combinations of the backtick operator can be used to
+   implement array operations and other related features. For
+   example, here is a function that sums up the value of all 
+   integers in an "array" starting at numbers_addr */
+
+func sum(numbers_addr int, count int) int {
+   var total int = 0;
+   while count > 0 {
+       total = total + `numbers_addr;
+       count = count - 1;
+       numbers_addr = numbers_addr + 4;
+   }
+   return total;
+}
+
+/* Here's a function that puts the first n factorials into an array */
+
+func factorials(numbers_addr int, n int) int {
+   var result int = 1;
+   var x int = 0;
+   while x < n {
+       `numbers_addr = result;
+       numbers_addr = numbers_addr + 4;
+       x = x + 1;
+       result = result * x;
+   }
+   return 0;
+}
+
+/* Here's a function that computes the first 10 factorials and sums them up */
+func main() int {
+    var result int;
+    var numbers_addr = 1000;     // Address where to store the result
+    result = factorials(numbers_addr, 10);
+    result = sum(numbers_addr, 10);
+    print(result);
+    return 0;
+}
+
+/* Your assignment.  Write a function negate() that negates n integers in an array.
+   Modify the main() function above to call it before calling the sum() function.
+   The final result should be the sum of the first n negative factorials. */
+
+       
+       
