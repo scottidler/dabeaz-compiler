@@ -4,9 +4,9 @@
    if a number is prime or not. It's not terribly efficient. */
 
 func isprime(n int) bool {
-    var factor int = 2;
-    var divisor int;
-    while factor < (n / 2) {
+     var factor int = 2;
+     var divisor int;
+     while factor <= (n / 2) {
         divisor = n / factor;
         if factor * divisor == n {
             return false;
@@ -17,9 +17,17 @@ func isprime(n int) bool {
 }
 
 func main() int {
-   print isprime(15);    // Prints 0
-   print isprime(37);    // Prints 1
-   return 0;
+    print isprime(15);    // Prints 0
+    print isprime(37);    // Prints 1
+
+    var count int = 0;
+    while count <= 100 {
+        print(count);
+        var value bool = isprime(count);
+        print(value);
+        count = count + 1;
+    }
+    return 0;
 }
 
 /* Run the above program using python wabbit.py prog3.wb. Make

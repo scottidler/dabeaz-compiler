@@ -4,13 +4,14 @@
    The following program is an example.  In this program, a rubber
    ball is dropped off a building with an initial height of 100 meters.
    On each bounce, the ball rebounds to 3/5 its original height. Print
-   the height of the ball on the first 10 bounces. 
+   the height of the ball on the first 10 bounces.
  */
-   
+
 const initial_height = 100.0;
 const rebound = 0.6;
 const total_bounces = 10;
 
+/*
 func main() int {
    var bounce int = 0;
    var height float = initial_height;
@@ -20,6 +21,24 @@ func main() int {
        print(height);
    }
    return 0;
+}
+*/
+
+const TOTAL float = 20.0 * 10.0;
+
+func main() int {
+    var total float = 0.0;
+    var teeth float = 20.0;
+    var rate float = .1;
+
+    while teeth > 0.0 {
+        total = total + rate;
+        rate = rate * 2.0;
+        teeth = teeth - 1.0;
+    }
+    print(TOTAL);
+    print(total);
+    return 0;
 }
 
 /* Run the above program using python wabbit.py prog2.wb.  Make sure
