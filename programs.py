@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # programs.py
 #
 # Within the bowels of your compiler, you need to represent programs
@@ -39,10 +41,19 @@ source1 = """
     print -2 + 3;
 """
 
-model1 = None
+model1 = Prog([
+    Print(BinOp(Name("+"), Integer(2), BinOp(Name("*"), Integer(3), Float(-4.0)))),
+    Print(BinOp(Name("-"), Float(2.0), BinOp(Name("/"), Float(3.0), Float(-4.0)))),
+    Print(BinOp(Name("+"), Integer(-2), Integer(3))),
+])
+print("source:")
+print(source1)
+print("render:")
+print(model1.to_code())
+print()
 
 # ----------------------------------------------------------------------
-# Program 2: Variable and constant declarations. 
+# Program 2: Variable and constant declarations.
 #            Expressions and assignment.
 #
 # Encode the following statements.
@@ -54,7 +65,18 @@ source2 = """
     print(tau);
 """
 
-model2 = None
+model2 = Prog([
+    Definition(Name("pi"), Type("float"), Float(3.14159)),
+    Definition(Name("tau"), Type("float")),
+    Assignment(Name("tau"), BinOp(Name("*"), Float(2.0), Name("pi"))),
+    Print(Name("tau")),
+])
+
+print("source:")
+print(source2)
+print("render:")
+print(model2.to_code())
+print()
 
 # ----------------------------------------------------------------------
 # Program 3: Conditionals.  This program prints out the minimum of
@@ -70,7 +92,16 @@ source3 = '''
     }
 '''
 
-model3 = None
+model3 = Prog([
+    Definition(Name("a"), Type("int"), Integer(2)),Definition(Name("b"), Type("int"), Integer(3)),
+    If(BinOp(Name("<"), Name("a"), Name("b")), Block([Print(Name("a"))]), Block([Print(Name("b"))])),
+])
+
+print("source:")
+print(source3)
+print("render:")
+print(model3.to_code())
+print()
 
 # ----------------------------------------------------------------------
 # Program 4: Loops.  This program prints out the first 10 factorials.
@@ -87,8 +118,22 @@ source4 = '''
     }
 '''
 
-model4 = None
+model4 = Prog([
+    Definition(Name("n"), Integer(10), mutable=False),
+    Definition(Name("x"), Integer(1), Type("int")),
+    Definition(Name("fact"), Integer(1), Type("int")),
+    While(BinOp(Name("<"), Name("x"), Name("n")), Block([
+        Assignment(Name("fact"), BinOp(Name("*"), Name("fact"), Name("x"))),
+        Print(Name("fact")),
+        Assignment(Name("x"), BinOp(Name("+"), Name("x"), Integer(1))),
+    ]))
+])
 
+print("source:")
+print(source4)
+print("render:")
+print(model4.to_code())
+print()
 # ----------------------------------------------------------------------
 # Program 5: Functions (simple)
 #
@@ -102,8 +147,19 @@ source5 = '''
     print square(10);
 '''
 
-model5 = None
+model5 = Prog([
+    Func(Name("square"), [Parameter(Name("x"), Type("int"))], Type("int"), Block([
+        Return(BinOp(Name("*"), Name("x"), Name("x"))),
+    ])),
+    Print(Call(Name("square"), [Integer(4)])),
+    Print(Call(Name("square"), [Integer(10)])),
+])
 
+print("source:")
+print(source5)
+print("render:")
+print(model5.to_code())
+print()
 # ----------------------------------------------------------------------
 # Program 6: Functions (complex)
 #
@@ -134,7 +190,7 @@ source7 = '''
 
      print(spam * int(pi));
      print(float(spam) * pi);
-     print(int(spam) * int(pi));  
+     print(int(spam) * int(pi));
 '''
 
 model7 = None
