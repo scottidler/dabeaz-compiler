@@ -19,7 +19,7 @@
 #
 
 from wabbit.model import *
-from wabbit.model import WabbitRenderer
+from wabbit.wabbit_renderer import WabbitRenderer
 
 renderer = WabbitRenderer()
 
