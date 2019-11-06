@@ -18,27 +18,31 @@
 # parts of the project.  Plan to have a lot of discussion.
 #
 
+import sys
+
 from wabbit.model import *
 from wabbit.renderer import WabbitRenderer
 from wabbit.checker import TypeChecker
-from wabbit.env import Env
+from wabbit.irgen import IRFunction, IRGenerator
 
-checker = TypeChecker()
-renderer = WabbitRenderer()
-env = Env()
+from leatherman.dbg import dbg
 
 def display(source, model):
     print('*'*20)
     print("source:")
     print(source)
-    print('node:')
-    print(model)
-    errors = model.accept(checker, env)
-    print(f"check: errors = {errors}")
-    print("renderer:")
-    print(model.accept(renderer))
+    print('wabbit:')
+    WabbitRenderer.render(model)
+    print('checking...')
+    result = TypeChecker.check(model)
+    print(f'result={result} model={model}')
+    print('generating ircode...')
+    ircode = IRGenerator.generate(model)
+    print(ircode)
     print()
     print()
+
+    sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Simple Expression

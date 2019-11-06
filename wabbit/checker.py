@@ -59,8 +59,18 @@ class TypeResolver(Visitor):
 class TypeChecker(Visitor):
 
     resolver: TypeResolver = TypeResolver()
+    #env: Env = Env()
 
-    env: Env = Env()
+    @classmethod
+    def check(cls, model):
+        checker = cls()
+        env = Env()
+        errors = model.accept(checker, env)
+        for error in errors:
+            print(error)
+        else:
+            return True
+        return False
 
     def visit(self, undef: Undef, env: Env):
         errors = []

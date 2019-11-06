@@ -7,7 +7,7 @@ opcodes for performing mathematical calculations, loading/storing
 values from memory, and basic control flow (branches, jumps, etc.).
 Although you can make a compiler generate instructions directly for a
 CPU, it is often simpler to target a higher-level of abstraction
-instead.  One such abstraction is that of a stack machine. 
+instead.  One such abstraction is that of a stack machine.
 
 For example, suppose you want to evaluate an operation like this:
 
@@ -78,10 +78,10 @@ With that in mind, here is a basic instruction set for our IR Code:
     NEF                      : !=
     PRINTF                   ; Print top item on stack
     PEEKF                    ; Get float from memory (address on stack)
-    POKEF                    ; Put float in memory (value, address on stack) 
+    POKEF                    ; Put float in memory (value, address on stack)
     FTOI                     ; Convert float to integer
 
-    ; Byte-oriented operations (values are presented as integers)    
+    ; Byte-oriented operations (values are presented as integers)
     PRINTB                   ; Print top item on stack
     PEEKB                    ; Get byte from memory (address on stack)
     POKEB                    ; Put byte in memory (value, address on stack)
@@ -190,3 +190,76 @@ The final output of code generation should be some kind of Module object that
 holds everything. The module includes function objects, global variables, and
 anything else you might need to generate code later.
 '''
+
+from typing import List
+from dataclasses import dataclass
+
+from wabbit.model import *
+from wabbit.visitor import Visitor
+
+@dataclass
+class IRFunction:
+    name: str
+    params: [str]
+    return_type: str
+    code: List[tuple]
+
+@dataclass
+class IRModule:
+    functions = List[IRFunction]
+    globals = List[int]
+
+class IRGenerator(Visitor):
+
+    @classmethod
+    def generate(cls, model):
+        assert model is not None, "model=None passed to IRGenerator.generate"
+        generator = cls()
+        main = IRFunction("main", [], None, [])
+        model.accept(generator, main)
+        return main
+
+    def visit(self, prog: Prog, func):
+        errors = []
+        errors += [self.visit(stmt, func) for stmt in prog.stmts]
+        return errors
+
+    def visit(self, print: Print, func):
+        errors = []
+        errors += self.visit(print.expr, func)
+        return errors
+
+    def visit(self, binop: BinOp, func):
+        errors = []
+        errors += self.visit(binop.left, func)
+        errors += self.visit(binop.right, func)
+        if binop.left.type == Type('int'):
+            if binop.operator == Name('+'):
+                func.code += [('ADDI',)]
+            if binop.operator == Name('-'):
+                func.code += [('SUBI',)]
+            if binop.operator == Name('*'):
+                func.code += [('MULI',)]
+            if binop.operator == Name('/'):
+                func.code += [('DIVI',)]
+        elif binop.right.type == Type('float'):
+            if binop.operator == Name('+'):
+                func.code += [('ADDF',)]
+            if binop.operator == Name('-'):
+                func.code += [('SUBF',)]
+            if binop.operator == Name('*'):
+                func.code += [('MULF',)]
+            if binop.operator == Name('/'):
+                func.code += [('DIVF',)]
+        return errors
+
+    def visit(self, integer: Integer, func):
+        errors = []
+        func.code += [('CONSTI', str(integer.value))]
+        return errors
+
+    def visit(self, float: Float, func):
+        errors = []
+        func.code += [('CONSTF', str(float.value))]
+        return errors
+

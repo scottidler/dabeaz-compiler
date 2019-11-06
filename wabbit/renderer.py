@@ -5,6 +5,11 @@ from wabbit.model import *
 
 class WabbitRenderer(Visitor):
 
+    @classmethod
+    def render(cls, model):
+        renderer = cls()
+        model.accept(renderer)
+
     def visit(self, undef: Undef):
         return ''
 
