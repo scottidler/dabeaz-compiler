@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Any
-from dataclasses import dataclass
+from typing import Any, List
+from dataclasses import dataclass, field
+
+from wabbit.visitor import Visitor
+
+from leatherman.dbg import dbg
 
 NL = '\n'
 
@@ -9,13 +13,13 @@ def printf(expr):
     sys.stdout.write(expr)
 
 @dataclass
-class Node:
-    def to_code(self):
-        msg = f'to_code must be implemented for {self.__class__.__name__}'
-        raise NotImplementedError(msg)
+class Type:
+    value: str
 
-    def accept(self, visitor):
-        return visitor.visit(self)
+@dataclass
+class Node:
+    def accept(self, visitor: Visitor, *args, **kwargs):
+        return visitor.visit(self, *args, **kwargs)
 
 @dataclass
 class Expression(Node):
@@ -27,15 +31,11 @@ class Statement(Node):
 
 @dataclass
 class Block(Node):
-    stmts: [Statement]
+    stmts: List[Statement] = field(default_factory=list)
 
 @dataclass
 class Prog(Block):
     pass
-
-@dataclass
-class Type(Node):
-    value: str
 
 @dataclass
 class Literal(Expression):
@@ -44,21 +44,26 @@ class Literal(Expression):
 @dataclass
 class Integer(Literal):
     value: int
+    type: Type = Type('int')
 
 @dataclass
 class Float(Literal):
     value: float
+    type: Type = Type('float')
 
 @dataclass
 class Boolean(Literal):
     value: bool
+    type: Type = Type('bool')
 
 @dataclass
 class Char(Literal):
     value: str
+    type: Type = Type('char')
 
 @dataclass
 class Undef(Expression):
+    type: Type = Type('undef')
     def __bool__(self):
         return False
 
@@ -69,8 +74,8 @@ class Name(Expression):
 @dataclass
 class Definition(Statement):
     name: Name
+    type: Type
     value: Expression = Undef()
-    type: Type = Undef()
     mutable: bool = True
 
 @dataclass
@@ -95,7 +100,6 @@ class Assignment(Statement):
 
 @dataclass
 class Cast(Expression):
-    type: Type
     expr: Expression
 
 @dataclass
@@ -142,7 +146,6 @@ class Func(Statement):
 class Import(Statement):
     name: Name
     params: [Parameter]
-    type: Type
 
 @dataclass
 class Call(Expression):
