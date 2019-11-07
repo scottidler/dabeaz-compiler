@@ -191,7 +191,7 @@ holds everything. The module includes function objects, global variables, and
 anything else you might need to generate code later.
 '''
 
-from typing import List
+from typing import List, Dict
 from dataclasses import dataclass
 
 from wabbit.model import *
@@ -199,15 +199,17 @@ from wabbit.visitor import Visitor
 
 @dataclass
 class IRFunction:
+    module: 'IRModule'
     name: str
-    params: [str]
     return_type: str
     code: List[tuple]
+    params: Dict[str, str] = field(default_factory=dict)
+    locals: Dict[str, str] = field(default_factory=dict)
 
 @dataclass
 class IRModule:
     functions = List[IRFunction]
-    globals = List[int]
+    globals: Dict[str, str] = field(default_factory=dict)
 
 class IRGenerator(Visitor):
 
@@ -215,9 +217,11 @@ class IRGenerator(Visitor):
     def generate(cls, model):
         assert model is not None, "model=None passed to IRGenerator.generate"
         generator = cls()
-        main = IRFunction("main", [], None, [])
+        module = IRModule()
+        main = IRFunction(module, "main", None, [], [])
         model.accept(generator, main)
-        return main
+        module.functions = [main]
+        return module
 
     def visit(self, prog: Prog, func):
         errors = []
@@ -226,7 +230,12 @@ class IRGenerator(Visitor):
 
     def visit(self, print: Print, func):
         errors = []
+        dbg(print, func)
         errors += self.visit(print.expr, func)
+        if print.expr.type == Type('int'):
+            func.code += [('PRINTI',)]
+        elif print.expr.type  == Type('float'):
+            func.code += [('PRINTF',)]
         return errors
 
     def visit(self, binop: BinOp, func):
@@ -262,4 +271,27 @@ class IRGenerator(Visitor):
         errors = []
         func.code += [('CONSTF', str(float.value))]
         return errors
+
+    def visit(self, name: Name, func):
+        dbg(vars_name=vars(name))
+        if getattr(name, 'lvalue', False):
+            self.generate(name.value, func)
+            func.code += [('GLOBAL_SET', name.value)]
+        else:
+            func.code += [('GLOBAL_GET', name.value)]
+
+    def visit(self, definition: Definition, func):
+        if definition.type in (Type('int'), Type('bool'), Type('char')):
+            g_irtype = 'I'
+        elif definition.type  == Type('float'):
+            g_irtype = 'F'
+
+        func.module.globals[definition.name.value] = g_irtype
+
+        if definition.value:
+            self.visit(definition.value, func)
+            func.code += [('GLOBAL_SET', definition.name)]
+
+    def visit(self, assignment: Assignment, func):
+        pass
 

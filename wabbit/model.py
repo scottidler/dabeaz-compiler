@@ -64,6 +64,8 @@ class Char(Literal):
 @dataclass
 class Undef(Expression):
     type: Type = Type('undef')
+    value: Expression = None
+
     def __bool__(self):
         return False
 
@@ -95,7 +97,7 @@ class Location(Node):
 
 @dataclass
 class Assignment(Statement):
-    loc: Location
+    name: Name
     expr: Expression
 
 @dataclass

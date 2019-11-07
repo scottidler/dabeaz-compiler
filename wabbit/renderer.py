@@ -37,7 +37,7 @@ class WabbitRenderer(Visitor):
         return f'{prefix} {self.visit(definition.name)} {self.visit(definition.type)}{suffix};'
 
     def visit(self, assignment: Assignment):
-        return f'{self.visit(assignment.loc)} = {self.visit(assignment.expr)};'
+        return f'{self.visit(assignment.name)} = {self.visit(assignment.expr)};'
 
     def visit(self, cast: Cast):
         return f'{self.visit(cast.type)}({self.visit(cast.expr)})'

@@ -19,30 +19,40 @@
 #
 
 import sys
+from subprocess import check_call
 
 from wabbit.model import *
 from wabbit.renderer import WabbitRenderer
 from wabbit.checker import TypeChecker
-from wabbit.irgen import IRFunction, IRGenerator
+from wabbit.irgenerator import IRGenerator
+from wabbit.llvmgenerator import LLVMGenerator
 
 from leatherman.dbg import dbg
 
-def display(source, model):
+def execute(name, source, model):
     print('*'*20)
-    print("source:")
+    print(f'{name} source:')
     print(source)
-    print('wabbit:')
+    print(f'{name}, wabbit:')
+    print(model)
     WabbitRenderer.render(model)
-    print('checking...')
+    print(f'{name}: type checking...')
     result = TypeChecker.check(model)
-    print(f'result={result} model={model}')
-    print('generating ircode...')
-    ircode = IRGenerator.generate(model)
-    print(ircode)
-    print()
-    print()
+    print(f'{name}: generating ircode...')
+    irmodule = IRGenerator.generate(model)
+    print(irmodule)
+    print(irmodule.functions)
+    print(f'{name}: generating llvmcode...')
+    llvmcode = LLVMGenerator.generate(irmodule)
+    print(llvmcode)
+    print(f'{name}: writing llvmcode...')
+    with open(f'{name}.ll', 'w') as f:
+        f.write(str(llvmcode))
+    print(f'{name}: compiling llvmcode...')
+    check_call(f'clang print.c {name}.ll -o {name}', shell=True)
+    print(f'{name}: running llvmcode...')
+    check_call(f'./{name}')
 
-    sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Simple Expression
@@ -71,7 +81,7 @@ model1 = Prog([
     Print(BinOp(Name("+"), Integer(-2), Integer(3))),
 ])
 
-display(source1, model1)
+execute('example1', source1, model1)
 
 # ----------------------------------------------------------------------
 # Program 2: Variable and constant declarations.
@@ -88,12 +98,13 @@ print(tau);
 
 model2 = Prog([
     Definition(Name("pi"), Type("float"), Float(3.14159)),
-    Definition(Name("tau"), Type("float")),
+    Definition(Name('tau'), Type("float")),
     Assignment(Name("tau"), BinOp(Name("*"), Float(2.0), Name("pi"))),
     Print(Name("tau")),
 ])
 
-display(source2, model2)
+execute('example2', source2, model2)
+sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Program 3: Conditionals.  This program prints out the minimum of
@@ -114,7 +125,7 @@ model3 = Prog([
     If(BinOp(Name("<"), Name("a"), Name("b")), Block([Print(Name("a"))]), Block([Print(Name("b"))])),
 ])
 
-display(source3, model3)
+execute('example3', source3, model3)
 
 # ----------------------------------------------------------------------
 # Program 4: Loops.  This program prints out the first 10 factorials.
@@ -142,7 +153,7 @@ model4 = Prog([
     ]))
 ])
 
-display(source4, model4)
+execute('example4', source4, model4)
 
 # ----------------------------------------------------------------------
 # Program 5: Functions (simple)
@@ -165,7 +176,7 @@ model5 = Prog([
     Print(Call(Name("square"), [Integer(10)])),
 ])
 
-display(source5, model5)
+execute('example5', source5, model5)
 
 # ----------------------------------------------------------------------
 # Program 6: Functions (complex)
@@ -187,7 +198,7 @@ print(fact(10));
 
 model6 = Prog([])
 
-display(source6, model6)
+execute('example6', source6, model6)
 
 # ----------------------------------------------------------------------
 # Program 7 : Type casting
@@ -204,7 +215,7 @@ print(int(spam) * int(pi));
 
 model7 = Prog([])
 
-display(source7, model7)
+execute('example7', source7, model7)
 
 # ----------------------------------------------------------------------
 # Program 8 : Memory access
@@ -220,4 +231,4 @@ print(`addr + 8);
 
 model8 = Prog([])
 
-display(source8, model8)
+execute('example8', source8, model8)

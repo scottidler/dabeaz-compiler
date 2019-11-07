@@ -32,3 +32,12 @@ class DefineError(WabbitError):
 
 class TypeResolveError(WabbitError):
     pass
+
+class TypeMismatchError(WabbitError):
+    pass
+
+class PredicateNotBoolError(WabbitError):
+    pass
+
+class ConstAssignmentError(WabbitError):
+    pass
