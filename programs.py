@@ -125,7 +125,6 @@ model3 = Prog([
 ])
 
 execute('example3', source3, model3)
-sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Program 4: Loops.  This program prints out the first 10 factorials.
@@ -154,6 +153,7 @@ model4 = Prog([
 ])
 
 execute('example4', source4, model4)
+sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Program 5: Functions (simple)

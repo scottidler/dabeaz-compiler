@@ -54,12 +54,12 @@ class TypeResolver(Visitor):
         result = self._binop_rules.get(key)
         if result:
             return Type(result)
+        dbg(key, result)
         return result
 
 class TypeChecker(Visitor):
 
     resolver: TypeResolver = TypeResolver()
-    #env: Env = Env()
 
     @classmethod
     def check(cls, model):
@@ -129,6 +129,8 @@ class TypeChecker(Visitor):
         if type:
             binop.type = type
         else:
+            import pdb; pdb.set_trace()
+            errors += self.visit(binop.right, env)
             errors += [TypeResolveError("type resolve error", binop)]
         assert hasattr(binop, 'type'), dbg('missing type annotation', binop)
 
@@ -154,7 +156,8 @@ class TypeChecker(Visitor):
         definition.name.lvalue = True
         if definition.value:
             self.visit(definition.value, env)
-            if not definition.type:
+            #if not definition.type:
+            if definition.type == Type('undef') or not definition.type:
                 definition.type = definition.value.type
             if definition.type != definition.value.type:
                 errors += [TypeMismatchError('type mismatch in definition checker', definition)]

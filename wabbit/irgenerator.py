@@ -332,5 +332,5 @@ class IRGenerator(Visitor):
         func.code += [('NEI', )]    # invert the test
         func.code += [('CBREAK',)]  # conditional break
         self.visit(while_.block, func)
-        self.code += [('ENDLOOP',)]
+        func.code += [('ENDLOOP',)]
         return errors

@@ -34,6 +34,7 @@ class IfBlock:
 class WhileBlock:
     def __init__(self, func):
         self.loop_test = func.append_basic_block()
+        self.loop_body = func.append_basic_block()
         self.loop_exit = func.append_basic_block()
 
 class LLVMGenerator:
@@ -221,3 +222,21 @@ class LLVMGenerator:
         block = self.blockstack.pop()
         self.builder.branch(block.merge)
         self.builder.position_at_end(block.merge)
+
+    def gen_LOOP(self):
+        block = WhileBlock(self.func)
+        self.builder.branch(block.loop_test)
+        self.builder.position_at_end(block.loop_test)
+        self.blockstack.append(block)
+
+    def gen_ENDLOOP(self):
+        block = self.blockstack.pop()
+        self.builder.branch(block.loop_test)
+        self.builder.position_at_end(block.loop_exit)
+
+    def gen_CBREAK(self):
+        block = self.blockstack[-1]
+        self.builder.cbranch(self.builder.trunc(self.pop(), IntType(1)),
+                             block.loop_exit,
+                             block.loop_body)
+        self.builder.position_at_end(block.loop_body)
