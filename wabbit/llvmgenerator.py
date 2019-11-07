@@ -9,7 +9,7 @@
 
 from llvmlite.ir import (
     Module, Function, FunctionType, IntType, DoubleType, VoidType,
-    Constant, IRBuilder
+    Constant, IRBuilder, GlobalVariable
     )
 
 from leatherman.dbg import dbg
@@ -19,17 +19,18 @@ int_type = IntType(32)
 float_type = DoubleType()
 void_type = VoidType()
 
-def generate_llvm(irmodule):
-    gen = LLVMGenerator()
-    for irfunc in irmodule.functions:
-        gen.generate_function(irfunc)
-    return gen.module
+#def generate_llvm(irmodule):
+#    gen = LLVMGenerator()
+#    for irfunc in irmodule.functions:
+#        gen.generate_function(irfunc)
+#    return gen.module
 
 class LLVMGenerator:
 
     def __init__(self):
         self.stack = []
         self.module = Module()      # The LLVM module
+        self.globals = {}
 
         # Declare external functions needed for runtime functionality such as printing.
         # This code must be implemented in C and linked with the final LLVM output.
@@ -46,7 +47,8 @@ class LLVMGenerator:
     @classmethod
     def generate(cls, irmodule):
         generator = cls()
-        dbg(irmodule)
+        for name, g_irtype in irmodule.globals.items():
+            generator.define_global(name, g_irtype)
         for irfunc in irmodule.functions:
             generator.generate_function(irfunc)
         return generator.module
@@ -60,6 +62,19 @@ class LLVMGenerator:
 #        self._print_int = Function(self.module,
 #                                    FunctionType(void_type, [int_type]),
 #                                    name="_print_int")
+
+
+    def define_global(self, name, g_irtype):
+        assert g_irtype in ('I', 'F'), 'define_global requires I or F'
+        if g_irtype == 'I':
+            g_llvmtype = int_type
+            initializer = Constant(int_type, 0)
+        elif g_irtype == 'F':
+            g_llvmtype = float_type
+            initializer = Constant(float_type, 0.0)
+
+        self.globals[name] = GlobalVariable(self.module, g_llvmtype, name)
+        self.globals[name].initializer = initializer
 
 
     def generate_function(self, irfunc):
@@ -133,6 +148,12 @@ class LLVMGenerator:
 
     def gen_PRINTF(self):
         self.builder.call(self._print_float, [self.pop()])
+
+    def gen_GLOBAL_GET(self, name):
+        self.push(self.builder.load(self.globals[name]))
+
+    def gen_GLOBAL_SET(self, name):
+        self.builder.store(self.pop(), self.globals[name])
 
 
 

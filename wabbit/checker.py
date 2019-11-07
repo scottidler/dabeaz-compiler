@@ -101,8 +101,6 @@ class TypeChecker(Visitor):
         return errors
 #        result = env.get(name.value)
 #        if result is not None:
-#            dbg(env)
-#            dbg(name, result)
 #            name.type = result.type
 #            name.expr = result.value
 #        else:
@@ -153,11 +151,15 @@ class TypeChecker(Visitor):
 
     def visit(self, definition: Definition, env: Env):
         errors = []
+        definition.name.lvalue = True
         if definition.value:
+            self.visit(definition.value, env)
             if not definition.type:
                 definition.type = definition.value.type
             if definition.type != definition.value.type:
                 errors += [TypeMismatchError('type mismatch in definition checker', definition)]
+        env[definition.name.value] = definition
+        return errors
 #        errors = []
 #        definition.name.lvalue = True
 #        errors += self.visit(definition.value, env)
@@ -179,6 +181,7 @@ class TypeChecker(Visitor):
 
     def visit(self, assignment: Assignment, env: Env):
         errors = []
+        assignment.name.lvalue = True
         errors += self.visit(assignment.name, env)
         errors += self.visit(assignment.expr, env)
 
@@ -264,7 +267,7 @@ class TypeChecker(Visitor):
         func_env['$func'] = func
         errors += chain(*[self.visit(param, env) for param in func.params])
         errors += self.visit(func.block, env)
-        return []
+        return errors
 
     def visit(self, import_: Import, env: Env):
         errors = []

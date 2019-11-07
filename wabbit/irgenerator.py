@@ -230,7 +230,6 @@ class IRGenerator(Visitor):
 
     def visit(self, print: Print, func):
         errors = []
-        dbg(print, func)
         errors += self.visit(print.expr, func)
         if print.expr.type == Type('int'):
             func.code += [('PRINTI',)]
@@ -273,14 +272,15 @@ class IRGenerator(Visitor):
         return errors
 
     def visit(self, name: Name, func):
-        dbg(vars_name=vars(name))
+        errors = []
         if getattr(name, 'lvalue', False):
-            self.generate(name.value, func)
             func.code += [('GLOBAL_SET', name.value)]
         else:
             func.code += [('GLOBAL_GET', name.value)]
+        return errors
 
     def visit(self, definition: Definition, func):
+        errors = []
         if definition.type in (Type('int'), Type('bool'), Type('char')):
             g_irtype = 'I'
         elif definition.type  == Type('float'):
@@ -290,8 +290,13 @@ class IRGenerator(Visitor):
 
         if definition.value:
             self.visit(definition.value, func)
-            func.code += [('GLOBAL_SET', definition.name)]
+            func.code += [('GLOBAL_SET', definition.name.value)]
+        return errors
 
     def visit(self, assignment: Assignment, func):
-        pass
+        errors = []
+        assert assignment.name.lvalue, 'assignment.name must be lvalue'
+        errors += self.visit(assignment.expr, func)
+        errors += self.visit(assignment.name, func)
+        return errors
 
