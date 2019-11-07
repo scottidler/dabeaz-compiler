@@ -213,6 +213,32 @@ class IRModule:
 
 class IRGenerator(Visitor):
 
+    _binop_instructions = {
+        ('+', 'int', 'int'): ('ADDI',),
+        ('-', 'int', 'int'): ('SUBI',),
+        ('*', 'int', 'int'): ('MULI',),
+        ('/', 'int', 'int'): ('DIVI',),
+
+        ('>', 'int', 'int'): ('GTI',),
+        ('<', 'int', 'int'): ('LTI',),
+        ('>=', 'int', 'int'): ('GEI',),
+        ('<=', 'int', 'int'): ('LEI',),
+        ('==', 'int', 'int'): ('EQI',),
+        ('!=', 'int', 'int'): ('NEI',),
+
+        ('+', 'float', 'float'): ('ADDF',),
+        ('-', 'float', 'float'): ('SUBF',),
+        ('*', 'float', 'float'): ('MULF',),
+        ('/', 'float', 'float'): ('DIVF',),
+
+        ('>', 'float', 'float'): ('GTF',),
+        ('<', 'float', 'float'): ('LTF',),
+        ('>=', 'float', 'float'): ('GEF',),
+        ('<=', 'float', 'float'): ('LEF',),
+        ('==', 'float', 'float'): ('EQF',),
+        ('!=', 'float', 'float'): ('NEF',),
+    }
+
     @classmethod
     def generate(cls, model):
         assert model is not None, "model=None passed to IRGenerator.generate"
@@ -223,9 +249,9 @@ class IRGenerator(Visitor):
         module.functions = [main]
         return module
 
-    def visit(self, prog: Prog, func):
+    def visit(self, block: Block, func):
         errors = []
-        errors += [self.visit(stmt, func) for stmt in prog.stmts]
+        errors += [self.visit(stmt, func) for stmt in block.stmts]
         return errors
 
     def visit(self, print: Print, func):
@@ -241,24 +267,12 @@ class IRGenerator(Visitor):
         errors = []
         errors += self.visit(binop.left, func)
         errors += self.visit(binop.right, func)
-        if binop.left.type == Type('int'):
-            if binop.operator == Name('+'):
-                func.code += [('ADDI',)]
-            if binop.operator == Name('-'):
-                func.code += [('SUBI',)]
-            if binop.operator == Name('*'):
-                func.code += [('MULI',)]
-            if binop.operator == Name('/'):
-                func.code += [('DIVI',)]
-        elif binop.right.type == Type('float'):
-            if binop.operator == Name('+'):
-                func.code += [('ADDF',)]
-            if binop.operator == Name('-'):
-                func.code += [('SUBF',)]
-            if binop.operator == Name('*'):
-                func.code += [('MULF',)]
-            if binop.operator == Name('/'):
-                func.code += [('DIVF',)]
+        key = (
+            binop.operator.value,
+            binop.left.type.value,
+            binop.right.type.value
+        )
+        func.code += [self._binop_instructions[key]]
         return errors
 
     def visit(self, integer: Integer, func):
@@ -300,3 +314,23 @@ class IRGenerator(Visitor):
         errors += self.visit(assignment.name, func)
         return errors
 
+    def visit(self, if_: If, func):
+        errors = []
+        self.visit(if_.test, func)
+        func.code += [('IF',)]
+        self.visit(if_.consequence, func)
+        func.code += [('ELSE',)]
+        self.visit(if_.alternative, func)
+        func.code += [('ENDIF',)]
+        return errors
+
+    def visit(self, while_: While, func):
+        errors = []
+        func.code += [('LOOP',)]
+        func.code += [('CONSTI', 1)]
+        self.visit(while_.test, func)
+        func.code += [('NEI', )]    # invert the test
+        func.code += [('CBREAK',)]  # conditional break
+        self.visit(while_.block, func)
+        self.code += [('ENDLOOP',)]
+        return errors

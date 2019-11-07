@@ -25,10 +25,22 @@ void_type = VoidType()
 #        gen.generate_function(irfunc)
 #    return gen.module
 
+class IfBlock:
+    def __init__(self, func):
+        self.consequence = func.append_basic_block()
+        self.alternative = func.append_basic_block()
+        self.merge = func.append_basic_block()
+
+class WhileBlock:
+    def __init__(self, func):
+        self.loop_test = func.append_basic_block()
+        self.loop_exit = func.append_basic_block()
+
 class LLVMGenerator:
 
     def __init__(self):
         self.stack = []
+        self.blockstack = []
         self.module = Module()      # The LLVM module
         self.globals = {}
 
@@ -81,8 +93,8 @@ class LLVMGenerator:
         # Make LLVM code for an IRFunction
         # From exercise (follow the template). Fill in details.
         # Note: Need to fix function signatures later (for model5 and upwards)
-        func = Function(self.module, FunctionType(int_type, []), name=irfunc.name)
-        block = func.append_basic_block('entry')
+        self.func = Function(self.module, FunctionType(int_type, []), name=irfunc.name)
+        block = self.func.append_basic_block('entry')
         self.builder = IRBuilder(block)
         for op, *opargs in irfunc.code:
             getattr(self, f'gen_{op}')(*opargs)
@@ -96,28 +108,49 @@ class LLVMGenerator:
     def pop(self):
         return self.stack.pop()
 
+    def pop_left_right(self):
+        right = self.pop()
+        left = self.pop()
+        return left, right
+
     def gen_CONSTI(self, value):
         self.push(Constant(int_type, value))
 
     def gen_ADDI(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.add(left, right))
+        self.push(self.builder.add(*self.pop_left_right()))
 
     def gen_SUBI(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.sub(left, right))
+        self.push(self.builder.sub(*self.pop_left_right()))
 
     def gen_MULI(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.mul(left, right))
+        self.push(self.builder.mul(*self.pop_left_right()))
 
     def gen_DIVI(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.sdiv(left, right))
+        self.push(self.builder.sdiv(*self.pop_left_right()))
+
+    def gen_GTI(self):
+        result = self.builder.icmp_signed('>', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
+
+    def gen_LTI(self):
+        result = self.builder.icmp_signed('<', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
+
+    def gen_GEI(self):
+        result = self.builder.icmp_signed('>=', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
+
+    def gen_LEI(self):
+        result = self.builder.icmp_signed('<=', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
+
+    def gen_EQI(self):
+        result = self.builder.icmp_signed('==', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
+
+    def gen_NEI(self):
+        result = self.builder.icmp_signed('!=', *self.pop_left_right())
+        self.push(self.builder.zext(result, int_type))
 
     def gen_PRINTI(self):
         # See codegen.html pg. 12-13
@@ -127,24 +160,40 @@ class LLVMGenerator:
         self.push(Constant(float_type, value))
 
     def gen_ADDF(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.fadd(left, right))
+        self.push(self.builder.fadd(*self.pop_left_right()))
 
     def gen_SUBF(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.fsub(left, right))
+        self.push(self.builder.fsub(*self.pop_left_right()))
 
     def gen_MULF(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.fmul(left, right))
+        self.push(self.builder.fmul(*self.pop_left_right()))
 
     def gen_DIVF(self):
-        right = self.pop()
-        left = self.pop()
-        self.push(self.builder.fdiv(left, right))
+        self.push(self.builder.fdiv(*self.pop_left_right()))
+
+    def gen_GTF(self):
+        result = self.buildler.fcmp_ordered('>', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
+
+    def gen_LTF(self):
+        result = self.buildler.fcmp_ordered('<', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
+
+    def gen_GEF(self):
+        result = self.buildler.fcmp_ordered('>=', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
+
+    def gen_LEF(self):
+        result = self.buildler.fcmp_ordered('<=', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
+
+    def gen_EQF(self):
+        result = self.buildler.fcmp_ordered('==', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
+
+    def gen_NEF(self):
+        result = self.buildler.fcmp_ordered('!=', *self.pop_left_right())
+        self.push(self.builder.zext(result, float_type))
 
     def gen_PRINTF(self):
         self.builder.call(self._print_float, [self.pop()])
@@ -155,11 +204,20 @@ class LLVMGenerator:
     def gen_GLOBAL_SET(self, name):
         self.builder.store(self.pop(), self.globals[name])
 
+    def gen_IF(self):
+        block = IfBlock(self.func)
+        self.builder.cbranch(self.builder.trunc(self.pop(), IntType(1)),
+            block.consequence,
+            block.alternative)
+        self.blockstack.append(block)
+        self.builder.position_at_end(block.consequence)
 
+    def gen_ELSE(self):
+        block = self.blockstack[-1]
+        self.builder.branch(block.merge)
+        self.builder.position_at_end(block.alternative)
 
-
-
-
-
-
-
+    def gen_ENDIF(self):
+        block = self.blockstack.pop()
+        self.builder.branch(block.merge)
+        self.builder.position_at_end(block.merge)

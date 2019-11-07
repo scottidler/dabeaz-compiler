@@ -104,7 +104,6 @@ model2 = Prog([
 ])
 
 execute('example2', source2, model2)
-sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Program 3: Conditionals.  This program prints out the minimum of
@@ -126,6 +125,7 @@ model3 = Prog([
 ])
 
 execute('example3', source3, model3)
+sys.exit(0)
 
 # ----------------------------------------------------------------------
 # Program 4: Loops.  This program prints out the first 10 factorials.
