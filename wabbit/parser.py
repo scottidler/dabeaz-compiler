@@ -443,68 +443,6 @@ if 1:
         print(">>>", program)
         print(parse(program))
 
-# taken from the python FAQ
-program = """(lambda Ru,Ro,Iu,Io,IM,Sx,Sy:reduce(lambda x,y:x+y,map(lambda y,Iu=Iu,Io=Io,Ru=Ru,Ro=Ro,Sy=Sy,L=lambda yc,Iu=Iu,Io=Io,Ru=Ru,Ro=Ro,i=IM,Sx=Sx,Sy=Sy:reduce(lambda x,y:x+y,map(lambda x,xc=Ru,yc=yc,Ru=Ru,Ro=Ro,i=i,Sx=Sx,F=lambda xc,yc,x,y,k,f=lambda xc,yc,x,y,k,f:(k<=0)or (x*x+y*y>=4.0) or 1+f(xc,yc,x*x-y*y+xc,2.0*x*y+yc,k-1,f):f(xc,yc,x,y,k,f):chr(64+F(Ru+x*(Ro-Ru)/Sx,yc,0,0,i)),range(Sx))):L(Iu+y*(Io-Iu)/Sy),range(Sy))))(-2.1, 0.7, -1.2, 1.2, 30, 80, 24)"""
-
-# program = program + "+" + program
-# program = program + "+" + program
-# program = program + "+" + program
-
-if "--benchmark" in sys.argv:
-
-    def custom_tokenize_python(program):
-        # simplified tokenizer for this expression
-        pattern = r"\s*(?:(<=|>=|\W)|([a-zA-Z]\w*)|(\d+(?:\.\d*)?))|(\n)"
-        for operator, name, literal in re.findall(pattern, program):
-            if operator:
-                yield "(operator)", operator
-            elif name:
-                yield "(name)", name
-            elif literal:
-                yield "(literal)", literal
-#            elif newline:
-#                yield "(newline)", newline
-            else:
-                raise SyntaxError
-        yield "(end)", "(end)"
-
-    import time
-
-    print(len(program), "bytes")
-    print(len(list(tokenize(program))), "tokens")
-
-    def bench(name, func):
-        t0 = time.clock()
-        for i in range(1000):
-            func(program)
-        print(name, time.clock() - t0)
-
-    import parser, compiler
-
-    program_list = list(tokenize_python(program))
-
-    bench("topdown", parse)
-    bench("topdown pretokenized", lambda program: parse(program_list))
-
-    tokenize_python = custom_tokenize_python
-    bench("custom topdown", parse)
-
-    if pytoken:
-        tokenize_python = pytoken.token_list
-        bench("built-in topdown", parse)
-
-    print()
-
-    bench("built-in compile", lambda program: compile(program, "", "eval"))
-    bench("parser.parse", lambda program: parser.st2tuple(parser.expr(program)))
-
-    print()
-
-    bench("compiler.parse", lambda program: compiler.parse(program, "eval"))
-    bench("compiler.compile", lambda program: compiler.compile(program, "", "eval"))
-
-    sys.exit(0)
-
 # samples
 test("1")
 test("+1")
