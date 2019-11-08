@@ -21,6 +21,7 @@
 import sys
 from subprocess import check_call
 
+from wabbit.lexer import WabbitLexer
 from wabbit.model import *
 from wabbit.renderer import WabbitRenderer
 from wabbit.checker import TypeChecker
@@ -33,6 +34,11 @@ def execute(name, source, model):
     print('*'*20)
     print(f'{name} source:')
     print(source)
+    lexer = WabbitLexer()
+    tokens = lexer.tokenize(source)
+    for token in tokens:
+        print(token)
+    sys.exit(0)
     print(f'{name}, wabbit:')
     print(model)
     WabbitRenderer.render(model)
