@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 # see http://effbot.org/zone/simple-top-down-parsing.htm
+
 
 import sys
 import re
@@ -311,6 +314,7 @@ if 1:
                     break
                 else:
                     raise SyntaxError("Syntax error")
+        dbg(type_map)
         yield "(end)", "(end)"
 
     def tokenize(program):
@@ -319,6 +323,7 @@ if 1:
         else:
             source = tokenize_python(program)
         for id, value in source:
+            dbg(id, value)
             if id == "(literal)":
                 symbol = symbol_table[id]
                 s = symbol()
@@ -337,6 +342,7 @@ if 1:
                 else:
                     raise SyntaxError("Unknown operator (%r)" % id)
             yield s
+        dbg(symbol_table)
 
     # parser engine
 
