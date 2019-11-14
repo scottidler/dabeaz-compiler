@@ -302,19 +302,17 @@ if 1:
             tokenize.STRING: "(literal)",
             tokenize.OP: "(operator)",
             tokenize.NAME: "(name)",
-            tokenize.NEWLINE: "(newline)"
             }
         for t in tokenize.generate_tokens(StringIO(program).__next__):
             try:
                 yield type_map[t[0]], t[1]
             except KeyError:
-                if t[0] == tokenize.NL:
+                if t[0] in (tokenize.NL, tokenize.NEWLINE):
                     continue
                 if t[0] == tokenize.ENDMARKER:
                     break
                 else:
                     raise SyntaxError("Syntax error")
-        dbg(type_map)
         yield "(end)", "(end)"
 
     def tokenize(program):
@@ -323,7 +321,6 @@ if 1:
         else:
             source = tokenize_python(program)
         for id, value in source:
-            dbg(id, value)
             if id == "(literal)":
                 symbol = symbol_table[id]
                 s = symbol()
@@ -337,12 +334,9 @@ if 1:
                     symbol = symbol_table[id]
                     s = symbol()
                     s.value = value
-                elif id == "(newline)":
-                    pass
                 else:
                     raise SyntaxError("Unknown operator (%r)" % id)
             yield s
-        dbg(symbol_table)
 
     # parser engine
 
