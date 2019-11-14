@@ -21,8 +21,9 @@
 import sys
 from subprocess import check_call
 
-from wabbit.lexer import WabbitLexer
 from wabbit.model import *
+from wabbit.lexer import WabbitLexer
+from wabbit.parser import WabbitParser
 from wabbit.renderer import WabbitRenderer
 from wabbit.checker import TypeChecker
 from wabbit.irgenerator import IRGenerator
@@ -36,8 +37,20 @@ def execute(name, source, model):
     print(source)
     lexer = WabbitLexer()
     tokens = lexer.tokenize(source)
-    for token in tokens:
-        print(token)
+#    for token in tokens:
+#        print(token)
+#    tokens = lexer.tokenize('''
+#var int x = 4 + 3 * 5;
+#if true {
+#    var float y = x + 4;
+#}
+#else {
+#    var bool b = false;
+#}
+#''')
+    parser = WabbitParser(tokens=tokens)
+    token = parser.look_ahead()
+    dbg(token)
     sys.exit(0)
     print(f'{name}, wabbit:')
     print(model)
