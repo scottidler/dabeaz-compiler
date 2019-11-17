@@ -13,9 +13,6 @@ class Symbol:
     type: str
     lbp: int = 0
     value: str = None
-    fst: Any = None
-    snd: Any = None
-    trd: Any = None
     nud: Any = None
     led: Any = None
     std: Any = None
@@ -33,7 +30,7 @@ class TDOPParser:
             f'symbols={self.symbols}',
             f'index={self.index}',
         ])
-        return f'self.__class__.__name__({fields})'
+        return f'{self.__class__.__name__}({fields})'
 
     def look_ahead(self, distance=1):
         assert distance > 0, f'distance={distance} must be > 0'
@@ -84,24 +81,19 @@ class TDOPParser:
             s.lbp = max(bp, s.lbp)
         return s
 
-    def infix(self, type, bp):
+    def infix(self, type, bp, node):
         def led(self, left):
-            self.fst = left
-            self.snd = self.parser.expression(bp)
-            return self
+            return node(left, self.parse.expression(bp))
         self.symbol(type, bp).led = led
 
-    def infix_r(self, type, bp):
+    def infix_r(self, type, bp, node):
         def led(self, left):
-            self.fst = left
-            self.snd = self.parser.expression(bp-1)
-            return self
+            return node(left, self.parser.expression(bp-1))
         self.symbol(type, bp).led = led
 
-    def prefix(self, type, bp):
+    def prefix(self, type, bp, node):
         def nud(self):
-            self.fst = self.parser.expression(bp)
-            return self
+            return node(self.parser.expression(bp))
         self.symbol(type).nud = nud
 
     def method(self, s):

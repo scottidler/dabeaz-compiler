@@ -36,7 +36,7 @@ def execute(name, source, model):
     print(f'{name} source:')
     print(source)
     lexer = WabbitLexer()
-    tokens = lexer.tokenize(source)
+    tokens = list(lexer.tokenize(source))
 #    for token in tokens:
 #        print(token)
 #    tokens = lexer.tokenize('''
@@ -49,8 +49,7 @@ def execute(name, source, model):
 #}
 #''')
     parser = WabbitParser(tokens=tokens)
-    token = parser.look_ahead()
-    dbg(token)
+    parser.parse()
     sys.exit(0)
     print(f'{name}, wabbit:')
     print(model)

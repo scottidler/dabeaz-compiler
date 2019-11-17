@@ -85,34 +85,36 @@
 import sys
 import re
 
-from wabbit.tdop import TDOPParser
+from multimethod import multimeta
+
+from wabbit.symbol import Symbol
+#from wabbit.tdop import TDOPParser
+from wabbit.model import *
 from leatherman.dbg import dbg
 
-class WabbitParser(TDOPParser):
+#class WabbitParser(metaclass=multimeta):
+class WabbitParser:
 
     def symbolize(self, tokens):
         for token in tokens:
-            if token.type in ('int', 'float', 'char'):
-                symbol = self.symbols[token.type]
-                s = symbol()
-                s.value = token.value
-            else:
-                symbol = self.symbols.get(token.value)
-                if symbol:
-                    s = symbol()
-                elif token.type == 'ID':
-                    symbol = self.symbols[token.type]
-                    s = symbol()
-                    s.value = token.value
-                elif token.type == 'NL':
-                    continue
-                else:
-                    raise SyntaxError('')
+            symbol_class = Symbol.Table[token]
+            s = symbol_class(self, token)
             yield s
 
-    def __init__(self, tokens=None):
-        super().__init__(tokens=tokens, symbols=None, index=0)
+    def parse(self, tokens=None):
+        for symbol in self.symbolize(list(tokens) if tokens else self.tokens):
+            print(symbol)
 
+#    def __repr__(self):
+#        fields = ', '.join([
+#            f'tokens={self.tokens}',
+#            f'index={self.index}',
+#        ])
+#        return f'{self.__class__.__name__}({fields})'
+
+    def __init__(self, tokens=None):
+        self.tokens = list(tokens) if tokens else []
+        self.index = 0
 
         symbol = self.symbol
         infix = self.infix
@@ -122,6 +124,7 @@ class WabbitParser(TDOPParser):
         constant = self.constant
 
         # python expression syntax
+        symbol('print', 10)
 
         #symbol("lambda", 20)
         symbol("if", 20); symbol("else") # ternary form
@@ -129,7 +132,7 @@ class WabbitParser(TDOPParser):
         #infix_r("or", 30); infix_r("and", 40); prefix("not", 50)
 
         #infix("in", 60); infix("not", 60) # not in
-        infix("is", 60);
+        #infix("is", 60);
         infix("<", 60); infix("<=", 60)
         infix(">", 60); infix(">=", 60)
         infix("<>", 60); infix("!=", 60); infix("==", 60)
@@ -149,13 +152,25 @@ class WabbitParser(TDOPParser):
 
         symbol(".", 150); symbol("[", 150); symbol("(", 150)
 
+        symbol(';')
+
         # additional behaviour
 
         #symbol("(name)").nud = lambda self: self
         #symbol("(literal)").nud = lambda self: self
-        symbol('ID').nud = lambda self: self
-        symbol('INT').nud = lambda self: self
-        symbol('FLOAT').nud = lambda self: self
+        symbol('ID').nud = lambda self: Name(self.value)
+        symbol('INT').nud = lambda self: Integer(self.value)
+        symbol('FLOAT').nud = lambda self: Float(self.value)
+
+        @method(symbol('LITERAL'))
+        def nud(self):
+            if self.token.type == 'INT':
+                return Integer(self.token.value)
+            elif self.token.type == 'FLOAT':
+                return Float(self.token.value)
+            elif self.token.type == 'BOOL':
+                return Bool(self.token.value)
+            raise SyntaxError('unknown literal')
 
         #symbol("(end)")
         symbol('EOF')
@@ -323,3 +338,103 @@ class WabbitParser(TDOPParser):
             #advance("}")
             self.parser.consume('}')
             return self
+
+    def look_ahead(self, *types, distance=1):
+        assert distance > 0, f'distance={distance} must be > 0'
+        index = self.index
+        token =  None
+        while distance:
+            token = self.tokens[index]
+            distance -= 1
+            index += 1
+        distance = index - self.index
+        if types:
+            if Symbol.Table.make_key(token) in types:
+                return True
+            return False
+        return token
+
+    def consume(self, *types, distance=1):
+        result = self.look_ahead(*types, distance)
+        if result != False:
+            self.index += distance
+        return None
+
+    def symbol(self, key, bp=0):
+        try:
+            symbol_class = Symbol.Table[key]
+        except KeyError:
+            parser = self
+            def __init__(self):
+                Symbol.__init__(
+                    self,
+                    parser,
+                    token,
+                )
+            symbol_class = type(f'Symbol{key}', (Symbol,), {
+                #'__init__': lambda self, parser, token: Symbol.__init__(self, parser, token)
+            })
+            Symbol.Table[key] = symbol_class
+            symbol_class.lbp = bp
+        else:
+            symbol_class.lbp = max(bp, symbol_class.lbp)
+        return symbol_class
+
+    def infix(self, type, bp):
+        def led(self, left):
+            return BinOp(type, left, self.parse.expression(bp))
+        self.symbol(type, bp).led = led
+
+    def infix_r(self, type, bp):
+        def led(self, left):
+            return BinOp(type, left, self.parser.expression(bp-1))
+        self.symbol(type, bp).led = led
+
+    def prefix(self, type, bp):
+        def nud(self):
+            return UnOp(type, self.parser.expression(bp))
+        self.symbol(type).nud = nud
+
+    def method(self, s):
+        assert issubclass(s, Symbol)
+        def bind(func):
+            setattr(s, func.__name__, func)
+        return bind
+
+    def constant(self, type):
+        @self.method(self.symbol(type))
+        def nud(self):
+            self.type = 'LITERAL'
+            self.value = type
+            return self
+
+    def expression(self, rbp=0):
+        curr_symbol = self.consume()
+        if curr_symbol.nud:
+            self.index -= 1
+            return None
+        left = curr_symbol.nud(curr_symbol.type)
+        next_symbol = self.look_ahead()
+        while rbp < next_symbol.lbp:
+            curr_symbol = self.consume()
+            if curr_symbol.led:
+                self.index -= 1
+                return None
+            left = curr_symbol.led(left, curr_symbol.type)
+            next_symbol = self.look_ahead()
+        return left
+
+    def statement(self):
+        next_symbol = self.look_ahead()
+        if next_symbol.std != None:
+            self.consume()
+            return next_symbol.std()
+        return self.expression()
+
+    def statements(self):
+        statements = []
+        statement = self.statement()
+        while statement:
+            statements += [statement]
+            statement = self.statement() if self.consume('EOF') else None
+        return statements

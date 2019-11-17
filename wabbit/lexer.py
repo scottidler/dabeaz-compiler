@@ -28,6 +28,9 @@ class WabbitLexer(Lexer):
         # 'int'
         # 'float'
 
+        OP          ,
+        SYNTAX      ,
+
         # Identifiers:
         ID          , # Text starting with a letter or '_', followed by any number
                       # number of letters, digits, or underscores.
@@ -37,6 +40,7 @@ class WabbitLexer(Lexer):
         FLOAT       , #  123   (decimal)
         INT         , # 1.234
         CHAR        , # 'a'     (a single character - byte)
+        BOOL        , # true|false
 
         # Operators:
         PLUS        , # '+'
@@ -54,10 +58,8 @@ class WabbitLexer(Lexer):
         LNOT        , # '!'
         GROW        , # '^'
 
-        SYNTAX      ,
-
         # Miscellaneous Symbols
-        ASSIGN      , # '='
+        EQUALS      , # '='
         SEMI        , # ';'
         LPAREN      , # '('
         RPAREN      , # ')'
@@ -94,30 +96,34 @@ class WabbitLexer(Lexer):
     CHAR            = r'[A-Za-z0-9]'
 
     # Operators:
-    PLUS            = r'\+'
-    MINUS           = r'-'
-    STAR            = r'\*'
-    SLASH           = r'/'
-    LT              = r'<'
-    LE              = r'<='
-    GT              = r'>'
-    GE              = r'>='
-    EQ              = r'=='
-    NE              = r'!='
-    LAND            = r'&&'
-    LOR             = r'\|\|'
-    LNOT            = r'!'
-    GROW            = r'\^'
+    #PLUS            = r'\+'
+    #MINUS           = r'-'
+    #STAR            = r'\*'
+    #SLASH           = r'/'
+    #LT              = r'<'
+    #LE              = r'<='
+    #GT              = r'>'
+    #GE              = r'>='
+    #EQ              = r'=='
+    #NE              = r'!='
+    #LAND            = r'&&'
+    #LOR             = r'\|\|'
+    #LNOT            = r'!'
+    #GROW            = r'\^'
+
+    OP              = r'=|\+|-|\*|/|<|<=|>|>=|==|!=|&&|\|\||!|\^'
 
     # Miscellaneous Symbols
-    ASSIGN          = r'='
-    SEMI            = r';'
-    LPAREN          = r'\('
-    RPAREN          = r'\)'
-    LBRACE          = r'{'
-    RBRACE          = r'}'
-    COMMA           = r','
-    DEREF           = r'`'
+    #EQUALS          = r'='
+    #SEMI            = r';'
+    #LPAREN          = r'\('
+    #RPAREN          = r'\)'
+    #LBRACE          = r'{'
+    #RBRACE          = r'}'
+    #COMMA           = r','
+    #DEREF           = r'`'
+
+    SYNTAX          = r';|\(|\)|{|}|,|`'
 
     # Ignored pattern
     ignore_newline = r'\n+'
