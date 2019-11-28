@@ -37,20 +37,9 @@ def execute(name, source, model):
     print(source)
     lexer = WabbitLexer()
     tokens = list(lexer.tokenize(source))
-#    for token in tokens:
-#        print(token)
-#    tokens = lexer.tokenize('''
-#var int x = 4 + 3 * 5;
-#if true {
-#    var float y = x + 4;
-#}
-#else {
-#    var bool b = false;
-#}
-#''')
     parser = WabbitParser(tokens=tokens)
     parser.parse()
-    sys.exit(0)
+    return
     print(f'{name}, wabbit:')
     print(model)
     WabbitRenderer.render(model)

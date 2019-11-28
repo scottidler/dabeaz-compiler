@@ -5,14 +5,19 @@ from wabbit.lexer import Token
 
 from leatherman.dbg import dbg
 
+def prefix(type):
+    return type.split('_')[0] if '_' in type else None
+
 class SymbolTable(dict):
     @staticmethod
     def make_key(obj):
         if isinstance(obj, Token):
-            if obj.type in ('KEYWORD', 'SYNTAX', 'OP'):
+            group = prefix(obj.type)
+            if group in ('KW', 'OP', 'SYN'):
                 return obj.value
-            elif obj.type in ('INT', 'FLOAT', 'BOOL'):
-                return 'LITERAL'
+            elif group == 'LIT':
+                return 'LIT'
+            return obj.type
         return obj
 
     def __getitem__(self, obj):
@@ -33,13 +38,11 @@ class Symbol:
 
     @property
     def type(self):
-        if self.token.type in ('SYNTAX',):
-            return self.token.value
         return self.token.type
 
     @property
     def value(self):
-        if self.token.type in ('INT', 'FLOAT', 'BOOL'):
+        if prefix(self.token.type) == 'LIT':
             return self.token.value
         return None
 

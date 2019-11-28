@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # parse.py
 #
 # Wabbit parser.  The parser needs to construct the data model or an
@@ -82,13 +83,12 @@
 
 # see http://effbot.org/zone/simple-top-down-parsing.htm
 
-import sys
 import re
+import sys
 
 from multimethod import multimeta
 
 from wabbit.symbol import Symbol
-#from wabbit.tdop import TDOPParser
 from wabbit.model import *
 from leatherman.dbg import dbg
 
@@ -123,11 +123,17 @@ class WabbitParser:
         method = self.method
         constant = self.constant
 
+        symbol('const')
+        symbol('var')
+        symbol('int')
+        symbol('float')
+
         # python expression syntax
         symbol('print', 10)
 
         #symbol("lambda", 20)
         symbol("if", 20); symbol("else") # ternary form
+        symbol('while', 20)
 
         #infix_r("or", 30); infix_r("and", 40); prefix("not", 50)
 
@@ -159,17 +165,18 @@ class WabbitParser:
         #symbol("(name)").nud = lambda self: self
         #symbol("(literal)").nud = lambda self: self
         symbol('ID').nud = lambda self: Name(self.value)
-        symbol('INT').nud = lambda self: Integer(self.value)
-        symbol('FLOAT').nud = lambda self: Float(self.value)
+        symbol('LIT_INT').nud = lambda self: Integer(self.value)
+        symbol('LIT_BOOL').nud = lambda self: Boolean(self.value)
+        symbol('LIT_FLOAT').nud = lambda self: Float(self.value)
 
-        @method(symbol('LITERAL'))
+        @method(symbol('LIT'))
         def nud(self):
-            if self.token.type == 'INT':
+            if self.token.type == 'LIT_INT':
                 return Integer(self.token.value)
-            elif self.token.type == 'FLOAT':
+            elif self.token.type == 'LIT_BOOL':
+                return Boolean(self.token.value)
+            elif self.token.type == 'LIT_FLOAT':
                 return Float(self.token.value)
-            elif self.token.type == 'BOOL':
-                return Bool(self.token.value)
             raise SyntaxError('unknown literal')
 
         #symbol("(end)")
@@ -371,7 +378,7 @@ class WabbitParser:
                     parser,
                     token,
                 )
-            symbol_class = type(f'Symbol{key}', (Symbol,), {
+            symbol_class = type(f'Symbol {key}', (Symbol,), {
                 #'__init__': lambda self, parser, token: Symbol.__init__(self, parser, token)
             })
             Symbol.Table[key] = symbol_class
@@ -438,3 +445,9 @@ class WabbitParser:
             statements += [statement]
             statement = self.statement() if self.consume('EOF') else None
         return statements
+
+def main(args):
+    dbg(args)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
