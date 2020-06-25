@@ -102,8 +102,10 @@ class WabbitParser:
             yield s
 
     def parse(self, tokens=None):
-        for symbol in self.symbolize(list(tokens) if tokens else self.tokens):
+        self.symbols = list(self.symbolize(list(tokens) if tokens else self.tokens))
+        for symbol in self.symbols:
             print(symbol)
+        return self.program()
 
 #    def __repr__(self):
 #        fields = ', '.join([
@@ -114,6 +116,7 @@ class WabbitParser:
 
     def __init__(self, tokens=None):
         self.tokens = list(tokens) if tokens else []
+        self.symbols = []
         self.index = 0
 
         symbol = self.symbol
@@ -346,26 +349,42 @@ class WabbitParser:
             self.parser.consume('}')
             return self
 
+#    def look_ahead(self, *types, distance=1):
+#        assert distance > 0, f'distance={distance} must be > 0'
+#        index = self.index
+#        token =  None
+#        while distance:
+#            token = self.tokens[index]
+#            distance -= 1
+#            index += 1
+#        distance = index - self.index
+#        if types:
+#            if Symbol.Table.make_key(token) in types:
+#                return True
+#            return False
+#        return token
+
     def look_ahead(self, *types, distance=1):
         assert distance > 0, f'distance={distance} must be > 0'
         index = self.index
-        token =  None
+        symbol = None
         while distance:
-            token = self.tokens[index]
+            symbol = self.symbols[index]
             distance -= 1
             index += 1
         distance = index - self.index
         if types:
-            if Symbol.Table.make_key(token) in types:
+            if symbol.type in types:
                 return True
             return False
-        return token
+        return symbol
 
     def consume(self, *types, distance=1):
         result = self.look_ahead(*types, distance)
-        if result != False:
-            self.index += distance
-        return None
+        dbg(index=self.index)
+        assert result, f'cannot consume! types={types}, distance={distance}'
+        self.index += distance
+        return self.symbols[self.index-1]
 
     def symbol(self, key, bp=0):
         try:
@@ -445,6 +464,10 @@ class WabbitParser:
             statements += [statement]
             statement = self.statement() if self.consume('EOF') else None
         return statements
+
+    def program(self):
+        stms = self.statements()
+        return Prog(stmts)
 
 def main(args):
     dbg(args)

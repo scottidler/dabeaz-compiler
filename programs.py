@@ -37,9 +37,9 @@ def execute(name, source, model):
     print(source)
     lexer = WabbitLexer()
     tokens = list(lexer.tokenize(source))
-    parser = WabbitParser(tokens=tokens)
-    parser.parse()
-    return
+    #parser = WabbitParser(tokens=tokens)
+    #parser.parse()
+    #return
     print(f'{name}, wabbit:')
     print(model)
     WabbitRenderer.render(model)

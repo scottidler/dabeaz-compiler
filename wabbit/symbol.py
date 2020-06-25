@@ -35,6 +35,9 @@ class Symbol:
     def __init__(self, parser, token):
         self.parser = parser
         self.token = token
+        self.led = None
+        self.nud = None
+        self.std = None
 
     @property
     def type(self):
